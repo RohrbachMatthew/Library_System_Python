@@ -3,18 +3,25 @@ Program uses MySQL database: Library to make SQL queries
     - Displays Main Menu with options
     - User selects option and follows prompts for queries
     - Table / Row / Data shows with small menu under to go back to main or quit
-    
-TODO: add error handling
-"""
 
+TODO: add take away from available copies function for loans
+TODO: add error handling
+TODO: add comments and doc
+"""
+from datetime import date
 import mysql.connector
 from tabulate import tabulate
 
+"""
+Connection replaced with ***** for security
+    -Download the csv files located in library repository
+    -Create host,user,password and database name for the database then replace
+"""
 connection = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="Gigity102!",
-    database="my_library"
+    host='*********',  #  Enter host name
+    user='*********',  #  Enter username
+    password='********',  #  Enter password
+    databse='********'  #  Enter database name
 )
 
 #  Cursor connects to interact with database
@@ -38,7 +45,11 @@ def table_members():
 
 #  Displays BookLoans table
 def table_loans():
-    print("FIX to show BookLoans table")
+    cursor.execute(f"SELECT loanID, bookID, memberID, date_borrowed, due_date, date_returned "
+                   f"FROM BookLoans")
+    rows = cursor.fetchall()
+    headers = ['loanID', 'bookID', 'memberID', 'date_borrowed', 'due_date', 'date_returned']
+    print(tabulate(rows, headers=headers, tablefmt='grid'))
 
 def member_custom_search():
     """
@@ -54,16 +65,36 @@ def member_custom_search():
 
     #  Query for database
     query = f"SELECT {column_select} FROM LibraryMembers WHERE {column_filter} = %s"
-    #  Executes query and parameter user_row
+    #  Executes query with parameter user_value
     cursor.execute(query, (user_value,))
     #  Fetch one row that matches the query values
     table = cursor.fetchone()
     print(table)
 
+#  Add to BookLoans table
+def add_loans():
+    """
+    - date.today get the current date
+    """
+    user_loan_id = input("Enter new loan ID: ")
+    user_book_id = input("Enter book ID")
+    user_member_id = input("Enter member ID")
+    get_date = date.today()  # Get current date
+    today_date = f"{get_date:%Y-%m-%d}"  # F string to format yyy-mm-dd
+    date_due = input("Enter Due Date (YYYY-MM-DD): ")
+    query = (f"INSERT INTO BookLoans (loanID, bookID, memberID, date_borrowed, due_date, date_returned)"
+             f"VALUES (%s, %s, %s, %s, %s, %s)")
+    values = [user_loan_id, user_book_id, user_member_id, today_date, date_due, None]  # None for Null in MySQL
+    cursor.execute(query, values)
+    connection.commit()  # commits to database
+    print(f"Added LoanID: {user_loan_id}, BookID: {user_book_id}, MemberID: {user_member_id},"
+          f" Due Date: {date_due} successfully!")
+
+
 #  Main menu for program
 def main_menu():
     print("Main Menu:\n1. View Books Table\n2. View LibraryMembers Tabel\n3. View BookLoans Table\n"
-            "4. Custom Search For Member In LibraryMembers Table.\n")
+            "4. Custom Search For Member In LibraryMembers Table.\n5. Start New Book Loan.")
 
 while True:
     main_menu()
@@ -106,7 +137,16 @@ while True:
             continue
         else:
             break
-
+    #  Option 5
+    elif user == '5':
+        add_loans()
+        if input("Menu:\n1. Back to main menu\n2. Quit program\nEnter choice: ") == '1':
+            print()  # Leaves space between menus
+            continue
+        else:
+            break
     else:
         print("Invalid Choice")
+cursor.close()
+connection.close()
 print("Exiting Program")
